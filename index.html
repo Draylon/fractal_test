@@ -1,0 +1,230 @@
+<html>
+	<head>
+		<style>
+			*{
+				margin: 0;
+				position: relative;
+			}
+			body{
+				background: black;
+			}
+			#canvas{
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%,-50%);
+				border: 1px solid red;
+			}
+			#canv_txt{
+				position: absolute;
+				top: 50%;
+				left: 0%;
+				color: white;
+			}
+			.c_dim{
+				width: 800px;
+				height: 600px;
+			}
+			.grid{
+				position: fixed;
+				top: 50%;
+				left: 50%;
+				transform: translate(-50%,-50%);
+			}
+			.g_h_c{
+				position: absolute;
+				top: 0%;
+				left: 0%;
+				width: 100%;
+				height: 100%;
+				display: flex;
+				flex-direction: column;
+			}
+			.g_v_c{
+				position: absolute;
+				top: 0%;
+				left: 0%;
+				width: 100%;
+				height: 100%;
+				display: flex;
+				flex-direction: row;
+			}
+			.g_h{
+				position: relative;
+				flex: auto;
+				top: 0;
+				left: 0;
+				width: 100%;
+				height: 50%;
+				border-bottom: 1px solid blue;
+			}
+			.g_v{
+				position: relative;
+				flex: auto;
+				top: 0;
+				left: 0;
+				width: 50%;
+				height: 100%;
+				border-right: 1px solid blue;
+			}
+		</style>
+	</head>
+	<body>
+		<p>Adicionar os pontos da maneira: ponto1,ponto2,ponto3,ponto1</p>
+		<button onclick='addReleased(0)'>Bind Mouse Add Points</button>	<br>
+		<button onclick='addRemoved(0)'>Unbind Mouse Add points</button>		<!--<br>
+		<button onclick='addReleased(1)'>Release Start point</button>	<br>
+		<button onclick='addRemoved(1)'>Remove Start point</button>		--><br>
+		<button onclick='generate()'>Generate</button>					<br>
+		<button onclick='main()'>Draw</button>
+		<p>a operaçao pode levar alguns segundos</p><br>
+		<div id='canv_txt'></div>
+		<div class='grid c_dim'>
+			<div class='g_h_c'>
+				<div class='g_h'></div>
+				<div class='g_h'></div>
+				<div class='g_h'></div>
+				<div class='g_h'></div>
+				<div class='g_h'></div>
+			</div>
+			<div class='g_v_c'>
+				<div class='g_v'></div>
+				<div class='g_v'></div>
+				<div class='g_v'></div>
+				<div class='g_v'></div>
+				<div class='g_v'></div>
+			</div>
+		</div>
+		<canvas class='c_dim' id='canvas' width=800 height=800></canvas>
+		<script>
+			
+			function object(){
+				this.x;
+				this.y;
+				this.objective;
+			}
+			
+			
+			function objDistance(obj1,obj2){
+				var n_ob = new object();
+				n_ob.x = ( obj1.x + obj2.x ) / 2;
+				n_ob.y = ( obj1.y + obj2.y ) / 2;
+				return n_ob;
+			}
+			
+			var canvas = document.getElementById("canvas");
+			var main_objective = -1;
+			var c_txt = document.getElementById("canv_txt");
+			var canvasWidth = canvas.width;
+			var canvasHeight = canvas.height;
+			var ctx = canvas.getContext("2d");
+			var canvasData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+
+			// That's how you define the value of a pixel //
+			function drawPixel (x, y, r, g, b, a) {
+				var index = (x + y * canvasWidth) * 4;
+
+				canvasData.data[index + 0] = r;
+				canvasData.data[index + 1] = g;
+				canvasData.data[index + 2] = b;
+				canvasData.data[index + 3] = a;
+			}
+
+			// That's how you update the canvas, so that your //
+			// modification are taken in consideration //
+			function updateCanvas() {
+				ctx.putImageData(canvasData, 0, 0);
+			}
+			
+			function canvasHandler(str_range){
+					var len = Storage.length;
+					
+					var dim = 0;
+					while(str_range < len){
+						var curr_obj = Storage[str_range];
+						//console.log("X: "+Math.floor(curr_obj.x / 1.8)+" | Y: "+Math.floor(curr_obj.y / 3.2));
+						
+						var x= (curr_obj.x*canvasWidth)/ (canvas.offsetWidth - 2),
+						y=(curr_obj.y*canvasHeight)/ ( canvas.offsetHeight - 2 );
+						
+						drawPixel(
+							Math.round(x),
+							Math.round(y),
+							255, 255, 255, 255
+						);
+						str_range++;
+						if(dim % 5 == 0){
+							updateCanvas();
+							dim = 0;
+						}
+						dim++;
+					}
+			}
+			
+			
+			//=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0
+			//=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0
+			//=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0=0
+			
+			var Storage = new Array();
+			var drawManagement = new Array();
+			var drawCount = 0;
+			
+			function addToCurr(e){
+				var x = e.offsetX;
+				var y = e.offsetY;
+				var ob = new object();
+				ob.x = x;
+				ob.y = y;
+				ob.objective = main_objective;
+				Storage.push(ob);
+				drawManagement.push(drawCount);
+				//console.log("DrawCount: "+drawCount);
+				drawCount++;
+				//console.log(ob);
+				//console.log("Added\n");
+			}
+			
+			function generate(){
+				var limit = 10000;
+				var drawDefalts = drawCount-1;
+				//console.log(Storage);
+				var last_element = Storage[drawDefalts];
+				//console.log(drawDefalts);
+				//console.log(last_element);
+				for(var c=0;c < limit;c++){
+					var nob = new object();
+					var randomSeed = randomSelector(drawDefalts);
+					//console.log(Storage[randomSeed]);
+					var actual = Storage[randomSeed];
+					var n_e = objDistance(last_element,actual);
+					Storage.push(n_e);
+					last_element = n_e;
+				}
+				//console.log(Storage);
+			}
+			
+			function randomSelector(range){
+				return Math.floor((Math.random() * range));
+			}
+			
+			
+			canvas.addEventListener("mousemove" , function(event){
+				c_txt.innerHTML = event.offsetX + " | " + event.offsetY;
+			});
+			function addReleased(intent){
+				main_objective = intent;
+				//canvas.addEventListener("mousedown" , addToCurr(event,intent) );
+				canvas.addEventListener("mousedown" , addToCurr);
+			}
+			function addRemoved(intent){
+				canvas.removeEventListener("mousedown" , addToCurr);
+			}
+			
+			function main(){
+				canvasHandler(drawCount);
+			}
+			
+		</script>
+	</body>
+</html>
